@@ -1,7 +1,6 @@
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.*;
 
@@ -16,24 +15,20 @@ public class MainApplication {
     private static final Map<Integer, Integer> cart = new HashMap<>();
 
     static {
-        products.add(Map.of("id", 1, "name", "Laptop", "price", 750));
-        products.add(Map.of("id", 2, "name", "Mouse", "price", 20));
-        products.add(Map.of("id", 3, "name", "Keyboard", "price", 30));
-        products.add(Map.of("id", 4, "name", "Monitor", "price", 150));
-        products.add(Map.of("id", 5, "name", "USB Cable", "price", 10));
-        products.add(Map.of("id", 6, "name", "Webcam", "price", 80));
+        // Sample products - you can add more here
+        products.add(Map.of("id", 1, "name", "Product 1", "price", 10.0));
+        products.add(Map.of("id", 2, "name", "Product 2", "price", 20.0));
+        products.add(Map.of("id", 3, "name", "Product 3", "price", 30.0));
     }
 
     public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(MainApplication.class);
-        app.setDefaultProperties(Map.of("server.port", "8070"));
-        app.run(args);
+        SpringApplication.run(MainApplication.class, args);
     }
 
-    // Redirect root "/" to frontend.html (assuming frontend.html is served statically)
+    // Root mapping to avoid 404 Whitelabel error
     @GetMapping("/")
-    public RedirectView home() {
-        return new RedirectView("/frontend.html");
+    public String home() {
+        return "Welcome to the Shopping Cart API. Use /products or /cart endpoints.";
     }
 
     // Get all products
@@ -42,43 +37,40 @@ public class MainApplication {
         return products;
     }
 
-    // Get current cart items with total price calculation
+    // Get cart contents
     @GetMapping("/cart")
     public Map<String, Object> getCart() {
+        Map<String, Object> response = new HashMap<>();
         List<Map<String, Object>> items = new ArrayList<>();
-        double total = 0;
 
         for (Map.Entry<Integer, Integer> entry : cart.entrySet()) {
             int productId = entry.getKey();
             int quantity = entry.getValue();
+
             if (quantity <= 0) continue;
 
-            Optional<Map<String, Object>> productOpt = products.stream()
+            products.stream()
                     .filter(p -> p.get("id").equals(productId))
-                    .findFirst();
-
-            if (productOpt.isPresent()) {
-                Map<String, Object> product = productOpt.get();
-                Map<String, Object> item = new HashMap<>(product);
-                int price = (int) product.get("price");
-                item.put("quantity", quantity);
-                item.put("total", price * quantity);
-                items.add(item);
-                total += price * quantity;
-            }
+                    .findFirst()
+                    .ifPresent(product -> {
+                        Map<String, Object> item = new HashMap<>(product);
+                        item.put("quantity", quantity);
+                        items.add(item);
+                    });
         }
 
-        return Map.of("items", items, "total", total);
+        response.put("items", items);
+        return response;
     }
 
-    // Add to cart or update quantity (replace or add)
+    // Add to cart or replace quantity
     @PostMapping("/cart")
     public String addToCart(@RequestBody Map<String, Object> data) {
         Integer id = (Integer) data.get("id");
         Integer quantity = (Integer) data.get("quantity");
         Boolean replace = (Boolean) data.get("replace");
 
-        if (id == null || quantity == null || quantity < 0) {
+        if (id == null || quantity == null) {
             return "Invalid product ID or quantity";
         }
 
@@ -88,13 +80,15 @@ public class MainApplication {
         }
 
         if (Boolean.TRUE.equals(replace)) {
-            if (quantity == 0) {
+            // Replace quantity or remove if quantity <= 0
+            if (quantity <= 0) {
                 cart.remove(id);
                 return "Item removed from cart";
             } else {
                 cart.put(id, quantity);
             }
         } else {
+            // Add to existing quantity
             if (quantity <= 0) {
                 return "Invalid quantity";
             }
@@ -104,15 +98,14 @@ public class MainApplication {
         return "Cart updated";
     }
 
-    // Remove item from cart by id
+    // Remove item from cart
     @DeleteMapping("/cart/{id}")
     public String removeFromCart(@PathVariable Integer id) {
         if (cart.containsKey(id)) {
             cart.remove(id);
             return "Item removed from cart";
-        } else {
-            return "Item not in cart";
         }
+        return "Item not in cart";
     }
 
     // Clear entire cart
