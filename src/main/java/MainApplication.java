@@ -10,7 +10,6 @@ import java.util.*;
 @RestController
 public class MainApplication {
 
-    // Remove duplicates — keep only one declaration of each
     private static final List<Map<String, Object>> products = new ArrayList<>();
     private static final Map<Integer, Integer> cart = new HashMap<>();
 
@@ -24,6 +23,68 @@ public class MainApplication {
         SpringApplication.run(MainApplication.class, args);
     }
 
+    // Serve interactive frontend HTML at root "/"
+    @GetMapping("/")
+    public String home() {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Shopping Cart</title>
+                <style>
+                    body { font-family: Arial; }
+                    .product { margin-bottom: 10px; }
+                    button { margin-left: 10px; }
+                </style>
+            </head>
+            <body>
+                <h2>Products</h2>
+                <div id="product-list"></div>
+                <h2>Cart</h2>
+                <div id="cart"></div>
+
+                <script>
+                    async function loadProducts() {
+                        let res = await fetch('/products');
+                        let products = await res.json();
+                        const list = document.getElementById('product-list');
+                        list.innerHTML = '';
+                        products.forEach(p => {
+                            list.innerHTML += `
+                                <div class="product">
+                                    ${p.name} - $${p.price}
+                                    <button onclick="addToCart(${p.id})">Add to Cart</button>
+                                </div>`;
+                        });
+                    }
+
+                    async function loadCart() {
+                        let res = await fetch('/cart');
+                        let data = await res.json();
+                        const cartDiv = document.getElementById('cart');
+                        cartDiv.innerHTML = '';
+                        data.items.forEach(item => {
+                            cartDiv.innerHTML += `${item.name} - Quantity: ${item.quantity}<br>`;
+                        });
+                    }
+
+                    async function addToCart(id) {
+                        await fetch('/cart', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: id, quantity: 1 })
+                        });
+                        loadCart();
+                    }
+
+                    loadProducts();
+                    loadCart();
+                </script>
+            </body>
+            </html>
+        """;
+    }
+
     @GetMapping("/products")
     public List<Map<String, Object>> getProducts() {
         return products;
@@ -33,7 +94,6 @@ public class MainApplication {
     public Map<String, Object> getCart() {
         Map<String, Object> response = new HashMap<>();
 
-        // Compose nicer output with product info + quantity
         List<Map<String, Object>> items = new ArrayList<>();
 
         for (Map.Entry<Integer, Integer> entry : cart.entrySet()) {
