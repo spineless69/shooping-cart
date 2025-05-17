@@ -1,82 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>Shopping Cart</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f9f9f9;
-            margin: 2rem;
-        }
-        h1 {
-            text-align: center;
-        }
-        .container {
-            display: flex;
-            gap: 50px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .box {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            width: 400px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
         .product, .cart-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #ddd;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
-        button {
-            padding: 5px 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #218838;
-        }
-        input[type=number] {
-            width: 50px;
-            padding: 3px;
-        }
-        .cart-footer {
-            text-align: right;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        .clear-btn {
-            background-color: #dc3545;
-        }
-        .clear-btn:hover {
-            background-color: #c82333;
-        }
+        button { margin-left: 10px; }
+        h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        #cart-total { font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>Shopping Cart</h1>
-    <div class="container">
-        <div class="box">
-            <h2>Products</h2>
-            <div id="product-list"></div>
-        </div>
-        <div class="box">
-            <h2>Your Cart</h2>
-            <div id="cart"></div>
-            <div class="cart-footer" id="cart-total"></div>
-            <div style="text-align: center; margin-top: 10px;">
-                <button class="clear-btn" onclick="clearCart()">Clear Cart</button>
-            </div>
-        </div>
-    </div>
+    <h1>🛒 Shopping Cart</h1>
+
+    <h2>Products</h2>
+    <div id="product-list"></div>
+
+    <h2>Cart</h2>
+    <div id="cart"></div>
+    <div id="cart-total"></div>
+    <button onclick="clearCart()">Clear Cart</button>
 
     <script>
         async function loadProducts() {
@@ -85,11 +33,13 @@
             const list = document.getElementById('product-list');
             list.innerHTML = '';
             products.forEach(p => {
-                list.innerHTML += `
-                    <div class="product">
-                        <div>${p.name} - $${p.price}</div>
-                        <button onclick="addToCart(${p.id})">Add to Cart</button>
-                    </div>`;
+                const div = document.createElement('div');
+                div.className = 'product';
+                div.innerHTML = `
+                    <strong>${p.name}</strong> - $${p.price}
+                    <button onclick="addToCart(${p.id})">Add to Cart</button>
+                `;
+                list.appendChild(div);
             });
         }
 
@@ -99,21 +49,23 @@
             const cartDiv = document.getElementById('cart');
             const totalDiv = document.getElementById('cart-total');
             cartDiv.innerHTML = '';
+            totalDiv.innerHTML = '';
             if (data.items.length === 0) {
-                cartDiv.innerHTML = '<p>Cart is empty</p>';
-                totalDiv.innerText = '';
+                cartDiv.innerHTML = '<i>Your cart is empty.</i>';
                 return;
             }
             data.items.forEach(item => {
-                cartDiv.innerHTML += `
-                    <div class="cart-item">
-                        <div>${item.name} ($${item.price})</div>
-                        <input type="number" value="${item.quantity}" min="0"
-                            onchange="updateQuantity(${item.id}, this.value)">
-                        <div>$${item.total}</div>
-                    </div>`;
+                const div = document.createElement('div');
+                div.className = 'cart-item';
+                div.innerHTML = `
+                    <strong>${item.name}</strong> - $${item.price} x 
+                    <input type="number" value="${item.quantity}" min="0" style="width: 50px"
+                        onchange="updateCart(${item.id}, this.value)">
+                    = $${item.total}
+                `;
+                cartDiv.appendChild(div);
             });
-            totalDiv.innerText = "Total: $" + data.total;
+            totalDiv.innerHTML = `Total: $${data.total}`;
         }
 
         async function addToCart(id) {
@@ -125,11 +77,11 @@
             loadCart();
         }
 
-        async function updateQuantity(id, qty) {
+        async function updateCart(id, quantity) {
             await fetch('/cart/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, quantity: parseInt(qty) })
+                body: JSON.stringify({ id: id, quantity: parseInt(quantity) })
             });
             loadCart();
         }
