@@ -1,10 +1,11 @@
-package com.shopping;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.view.RedirectView;
 
+import java.io.File;
 import java.util.*;
 
 @SpringBootApplication
@@ -20,7 +21,7 @@ public class MainApplication {
         products.add(Map.of("id", 3, "name", "Keyboard", "price", 30));
         products.add(Map.of("id", 4, "name", "Monitor", "price", 150));
         products.add(Map.of("id", 5, "name", "USB Cable", "price", 10));
-        products.add(Map.of("id", 6, "name", "Webcam", "price", 80));
+        products.add(Map.of("id", 6, "name", "Headphones", "price", 60));
     }
 
     public static void main(String[] args) {
@@ -30,8 +31,14 @@ public class MainApplication {
     }
 
     @GetMapping("/")
-    public RedirectView home() {
-        return new RedirectView("/index.html");
+    public ResponseEntity<FileSystemResource> serveFrontend() {
+        File file = new File("frontend.html");
+        if (!file.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .body(new FileSystemResource(file));
     }
 
     @GetMapping("/products")
@@ -72,7 +79,6 @@ public class MainApplication {
         }
         boolean exists = products.stream().anyMatch(p -> p.get("id").equals(id));
         if (!exists) return "Product not found";
-
         cart.put(id, cart.getOrDefault(id, 0) + quantity);
         return "Added to cart";
     }
