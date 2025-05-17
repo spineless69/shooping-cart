@@ -2,6 +2,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.shopping</groupId>
     <artifactId>shopping-cart</artifactId>
@@ -9,11 +10,12 @@
     <packaging>jar</packaging>
 
     <properties>
-        <java.version>21</java.version>  <!-- Change to Java 21 -->
+        <java.version>21</java.version>
         <spring.boot.version>3.2.0</spring.boot.version>
     </properties>
 
     <dependencies>
+        <!-- Spring Boot Web Starter -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -23,20 +25,28 @@
 
     <build>
         <plugins>
+            <!-- Spring Boot Maven Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring.boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal> <!-- Important for creating executable JAR -->
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
-            <!-- Add the maven-compiler-plugin configuration for Java 21 -->
+            <!-- Java Compiler Plugin for Java 21 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version> <!-- Latest version to support Java 21 -->
+                <version>3.10.1</version>
                 <configuration>
-                    <source>${java.version}</source> <!-- Use Java 21 -->
-                    <target>${java.version}</target> <!-- Use Java 21 -->
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                 </configuration>
             </plugin>
         </plugins>
