@@ -15,7 +15,7 @@ public class MainApplication {
     private static final Map<Integer, Integer> cart = new HashMap<>();
 
     static {
-        // Sample products - you can add more here
+        // Sample products
         products.add(Map.of("id", 1, "name", "Product 1", "price", 10.0));
         products.add(Map.of("id", 2, "name", "Product 2", "price", 20.0));
         products.add(Map.of("id", 3, "name", "Product 3", "price", 30.0));
@@ -25,7 +25,7 @@ public class MainApplication {
         SpringApplication.run(MainApplication.class, args);
     }
 
-    // Root mapping to avoid 404 Whitelabel error
+    // Root endpoint
     @GetMapping("/")
     public String home() {
         return "Welcome to the Shopping Cart API. Use /products or /cart endpoints.";
@@ -63,7 +63,7 @@ public class MainApplication {
         return response;
     }
 
-    // Add to cart or replace quantity
+    // Add to cart or update/replace quantity
     @PostMapping("/cart")
     public String addToCart(@RequestBody Map<String, Object> data) {
         Integer id = (Integer) data.get("id");
@@ -80,22 +80,20 @@ public class MainApplication {
         }
 
         if (Boolean.TRUE.equals(replace)) {
-            // Replace quantity or remove if quantity <= 0
             if (quantity <= 0) {
                 cart.remove(id);
                 return "Item removed from cart";
             } else {
                 cart.put(id, quantity);
+                return "Cart item updated";
             }
         } else {
-            // Add to existing quantity
             if (quantity <= 0) {
                 return "Invalid quantity";
             }
             cart.put(id, cart.getOrDefault(id, 0) + quantity);
+            return "Cart updated";
         }
-
-        return "Cart updated";
     }
 
     // Remove item from cart
@@ -108,7 +106,7 @@ public class MainApplication {
         return "Item not in cart";
     }
 
-    // Clear entire cart
+    // Clear all items in the cart
     @DeleteMapping("/cart")
     public String clearCart() {
         cart.clear();
