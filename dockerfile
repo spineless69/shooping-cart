@@ -1,5 +1,5 @@
-# Use Maven with JDK 21 image
-FROM maven:3.9.4-eclipse-temurin-21
+# ---- Stage 1: Build the application ----
+FROM maven:3.9.4-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
@@ -7,11 +7,19 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 
-# Build the project
+# Build the application
 RUN mvn clean package -DskipTests
 
-# Expose port (adjust if your app uses a different port)
+# ---- Stage 2: Run the application ----
+FROM eclipse-temurin:21-jdk
+
+WORKDIR /app
+
+# Copy the built JAR from the first stage
+COPY --from=build /app/target/shopping-cart-1.0.jar app.jar
+
+# Expose the application port
 EXPOSE 8070
 
-# Run the packaged jar (adjust jar name if different)
-CMD ["java", "-jar", "target/shopping-cart-1.0.jar"]
+# Run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]
