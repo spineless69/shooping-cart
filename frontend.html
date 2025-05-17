@@ -1,141 +1,74 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Simple ShopCart</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-      background: #f4f4f4;
-      color: #333;
-    }
-
-    h1 {
-      text-align: center;
-    }
-
-    .product, .cart-item {
-      border: 1px solid #ccc;
-      padding: 15px;
-      margin-bottom: 10px;
-      background: white;
-    }
-
-    .product button, .cart-item button {
-      margin-top: 5px;
-    }
-
-    .cart {
-      margin-top: 30px;
-    }
-
-    .total {
-      font-weight: bold;
-      margin-top: 10px;
-    }
-
-    .buttons {
-      margin-top: 10px;
-    }
-
-    .buttons button {
-      margin-right: 10px;
-    }
-  </style>
+    <title>Shopping Cart</title>
+    <style>
+        body { font-family: Arial; }
+        .product { margin-bottom: 10px; }
+        button { margin-left: 10px; }
+    </style>
 </head>
 <body>
 
-<h1>ShopCart</h1>
+    <h2>Products</h2>
+    <div id="product-list"></div>
 
-<div id="products"></div>
+    <h2>Cart</h2>
+    <div id="cart"></div>
 
-<div class="cart">
-  <h2>Your Cart</h2>
-  <div id="cart-items"></div>
-  <div class="total">Total: $<span id="cart-total">0.00</span></div>
-  <div class="buttons">
-    <button onclick="clearCart()">Clear Cart</button>
-    <button onclick="checkout()">Checkout</button>
-  </div>
-</div>
+    <script>
+        async function loadProducts() {
+            let res = await fetch('/products');
+            let products = await res.json();
+            const list = document.getElementById('product-list');
+            list.innerHTML = '';
+            products.forEach(p => {
+                list.innerHTML += `
+                    <div class="product">
+                        ${p.name} - $${p.price}
+                        <button onclick="addToCart(${p.id})">Add to Cart</button>
+                    </div>`;
+            });
+        }
 
-<script>
-  const products = [
-    { id: 1, name: "iPhone 14", price: 999.99 },
-    { id: 2, name: "Galaxy S22", price: 899.99 },
-    { id: 3, name: "MacBook Pro", price: 2499.99 }
-  ];
+        async function loadCart() {
+            let res = await fetch('/cart');
+            let data = await res.json();
+            const cartDiv = document.getElementById('cart');
+            cartDiv.innerHTML = '';
 
-  const cart = {};
+            if (!data.items || data.items.length === 0) {
+                cartDiv.innerHTML = 'Cart is empty';
+                return;
+            }
 
-  function renderProducts() {
-    const container = document.getElementById('products');
-    container.innerHTML = '';
-    products.forEach(p => {
-      const div = document.createElement('div');
-      div.className = 'product';
-      div.innerHTML = `
-        <h3>${p.name}</h3>
-        <p>$${p.price.toFixed(2)}</p>
-        <input type="number" id="qty-${p.id}" value="1" min="1" />
-        <button onclick="addToCart(${p.id})">Add to Cart</button>
-      `;
-      container.appendChild(div);
-    });
-  }
+            data.items.forEach(item => {
+                cartDiv.innerHTML += `
+                    ${item.name} (ID: ${item.id}) - Quantity: ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}
+                    <button onclick="removeFromCart(${item.id})">Remove</button>
+                    <br>`;
+            });
+        }
 
-  function addToCart(id) {
-    const qty = parseInt(document.getElementById(`qty-${id}`).value) || 1;
-    const product = products.find(p => p.id === id);
-    if (!cart[id]) {
-      cart[id] = { ...product, qty: 0 };
-    }
-    cart[id].qty += qty;
-    renderCart();
-  }
+        async function addToCart(id) {
+            await fetch('/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, quantity: 1 })
+            });
+            loadCart();
+        }
 
-  function renderCart() {
-    const container = document.getElementById('cart-items');
-    const totalDisplay = document.getElementById('cart-total');
-    container.innerHTML = '';
-    let total = 0;
+        async function removeFromCart(id) {
+            await fetch(`/cart/${id}`, {
+                method: 'DELETE'
+            });
+            loadCart();
+        }
 
-    Object.values(cart).forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'cart-item';
-      div.innerHTML = `
-        ${item.name} - $${item.price.toFixed(2)} x ${item.qty}
-        <button onclick="removeFromCart(${item.id})">Remove</button>
-      `;
-      container.appendChild(div);
-      total += item.price * item.qty;
-    });
-
-    totalDisplay.textContent = total.toFixed(2);
-  }
-
-  function removeFromCart(id) {
-    delete cart[id];
-    renderCart();
-  }
-
-  function clearCart() {
-    for (let key in cart) delete cart[key];
-    renderCart();
-  }
-
-  function checkout() {
-    if (Object.keys(cart).length === 0) {
-      alert("Your cart is empty.");
-    } else {
-      alert("Checkout is not implemented.");
-    }
-  }
-
-  renderProducts();
-</script>
-
+        // Initial load
+        loadProducts();
+        loadCart();
+    </script>
 </body>
 </html>
