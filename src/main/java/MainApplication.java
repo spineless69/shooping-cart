@@ -1,21 +1,19 @@
+package com.example;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.example"})
 @RestController
 public class MainApplication {
 
-    // Product list
     private static final List<Map<String, Object>> products = new ArrayList<>();
-
-    // Cart stores productId and quantity
     private static final Map<Integer, Integer> cart = new HashMap<>();
 
     static {
-        // Sample products
         products.add(Map.of("id", 1, "name", "Product 1", "price", 10.0));
         products.add(Map.of("id", 2, "name", "Product 2", "price", 20.0));
         products.add(Map.of("id", 3, "name", "Product 3", "price", 30.0));
@@ -25,19 +23,16 @@ public class MainApplication {
         SpringApplication.run(MainApplication.class, args);
     }
 
-    // Root endpoint
     @GetMapping("/")
     public String home() {
         return "Welcome to the Shopping Cart API. Use /products or /cart endpoints.";
     }
 
-    // Get all products
     @GetMapping("/products")
     public List<Map<String, Object>> getProducts() {
         return products;
     }
 
-    // Get cart contents
     @GetMapping("/cart")
     public Map<String, Object> getCart() {
         Map<String, Object> response = new HashMap<>();
@@ -63,7 +58,6 @@ public class MainApplication {
         return response;
     }
 
-    // Add to cart or update/replace quantity
     @PostMapping("/cart")
     public String addToCart(@RequestBody Map<String, Object> data) {
         Integer id = (Integer) data.get("id");
@@ -96,7 +90,6 @@ public class MainApplication {
         }
     }
 
-    // Remove item from cart
     @DeleteMapping("/cart/{id}")
     public String removeFromCart(@PathVariable Integer id) {
         if (cart.containsKey(id)) {
@@ -106,7 +99,6 @@ public class MainApplication {
         return "Item not in cart";
     }
 
-    // Clear all items in the cart
     @DeleteMapping("/cart")
     public String clearCart() {
         cart.clear();
