@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shopping Cart</title>
+    <style>
+        body { font-family: Arial; }
+        .product { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h2>Products</h2>
+    <div id="product-list"></div>
+    <h2>Cart</h2>
+    <div id="cart"></div>
+
+    <script>
+        async function loadProducts() {
+            let res = await fetch('/products');
+            let products = await res.json();
+            const list = document.getElementById('product-list');
+            list.innerHTML = '';
+            products.forEach(p => {
+                list.innerHTML += `
+                    <div class="product">
+                        ${p.name} - $${p.price}
+                        <button onclick="addToCart(${p.id})">Add to Cart</button>
+                    </div>`;
+            });
+        }
+
+        async function loadCart() {
+            let res = await fetch('/cart');
+            let data = await res.json();
+            const cartDiv = document.getElementById('cart');
+            cartDiv.innerHTML = '';
+            for (let id in data.items) {
+                cartDiv.innerHTML += `Product ID: ${id}, Quantity: ${data.items[id]}<br>`;
+            }
+        }
+
+        async function addToCart(id) {
+            await fetch('/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, quantity: 1 })
+            });
+            loadCart();
+        }
+
+        loadProducts();
+        loadCart();
+    </script>
+</body>
+</html>
