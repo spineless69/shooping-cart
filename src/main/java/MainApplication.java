@@ -25,6 +25,12 @@ public class MainApplication {
         SpringApplication.run(MainApplication.class, args);
     }
 
+    // Root mapping to avoid 404 Whitelabel error
+    @GetMapping("/")
+    public String home() {
+        return "Welcome to the Shopping Cart API. Use /products or /cart endpoints.";
+    }
+
     // Get all products
     @GetMapping("/products")
     public List<Map<String, Object>> getProducts() {
@@ -35,7 +41,6 @@ public class MainApplication {
     @GetMapping("/cart")
     public Map<String, Object> getCart() {
         Map<String, Object> response = new HashMap<>();
-        // Map product info with quantities for nicer output
         List<Map<String, Object>> items = new ArrayList<>();
 
         for (Map.Entry<Integer, Integer> entry : cart.entrySet()) {
