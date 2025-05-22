@@ -3,6 +3,10 @@ package com.shopping;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 @SpringBootApplication
@@ -25,7 +29,11 @@ public class MainApplication {
 
     @GetMapping("/")
     public String index() {
-        return java.nio.file.Files.readString(java.nio.file.Paths.get("src/main/resources/static/index.html"));
+        try {
+            return Files.readString(Paths.get("src/main/resources/static/index.html"));
+        } catch (IOException e) {
+            return "<h1>Error loading index.html</h1><p>" + e.getMessage() + "</p>";
+        }
     }
 
     @GetMapping("/products")
@@ -51,9 +59,18 @@ public class MainApplication {
 
     @PostMapping("/cart")
     public String addToCart(@RequestBody Map<String, Object> body) {
-        Integer id = (Integer) body.get("id");
-        Integer qty = (Integer) body.get("quantity");
-        if (id == null || qty == null || qty <= 0) return "Invalid data";
+        Object idObj = body.get("id");
+        Object qtyObj = body.get("quantity");
+
+        if (!(idObj instanceof Integer) || !(qtyObj instanceof Integer)) {
+            return "Invalid data type";
+        }
+
+        int id = (Integer) idObj;
+        int qty = (Integer) qtyObj;
+
+        if (qty <= 0) return "Quantity must be positive";
+
         cart.put(id, cart.getOrDefault(id, 0) + qty);
         return "Item added";
     }
