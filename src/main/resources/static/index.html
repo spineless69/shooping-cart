@@ -1,184 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Shopping Cart</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    background: #f7f7f7;
-  }
-  h1, h2 {
-    text-align: center;
-  }
-  .product-list, .cart-list {
-    background: #fff;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 0 8px rgba(0,0,0,0.1);
-  }
-  .product {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #eee;
-  }
-  .product:last-child {
-    border-bottom: none;
-  }
-  .product-name {
-    font-weight: bold;
-  }
-  button {
-    padding: 0.3rem 0.7rem;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-  }
-  button:hover {
-    background-color: #0056b3;
-  }
-  input[type=number] {
-    width: 50px;
-    margin-left: 1rem;
-  }
-  .cart-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #eee;
-  }
-  .total {
-    text-align: right;
-    font-weight: bold;
-    margin-top: 1rem;
-  }
-  .clear-btn {
-    background-color: #dc3545;
-  }
-  .clear-btn:hover {
-    background-color: #a71d2a;
-  }
-</style>
+    <title>Shopping Cart</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .product, .cart-item { margin-bottom: 10px; }
+    </style>
 </head>
 <body>
+    <h1>Products</h1>
+    <div id="products"></div>
+    <h2>Cart</h2>
+    <div id="cart"><em>Your cart is empty.</em></div>
+    <button onclick="clearCart()">Clear Cart</button>
 
-<h1>Simple Shopping Cart</h1>
+    <script>
+        async function fetchProducts() {
+            const res = await fetch("/products");
+            const products = await res.json();
+            const container = document.getElementById("products");
 
-<section class="product-list">
-  <h2>Products</h2>
-  <div id="products"></div>
-</section>
+            products.forEach(p => {
+                const div = document.createElement("div");
+                div.className = "product";
+                div.innerHTML = `
+                    <b>${p.name}</b> - $${p.price}
+                    <input type="number" id="qty-${p.id}" value="1" min="1" />
+                    <button onclick="addToCart(${p.id})">Add to Cart</button>
+                `;
+                container.appendChild(div);
+            });
+        }
 
-<section class="cart-list">
-  <h2>Your Cart</h2>
-  <div id="cart"></div>
-  <button class="clear-btn" onclick="clearCart()">Clear Cart</button>
-</section>
+        async function addToCart(id) {
+            const qty = parseInt(document.getElementById(`qty-${id}`).value);
+            await fetch("/cart", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, quantity: qty })
+            });
+            loadCart();
+        }
 
-<script>
-  async function fetchProducts() {
-    const res = await fetch('/products');
-    return res.json();
-  }
+        async function loadCart() {
+            const res = await fetch("/cart");
+            const cart = await res.json();
+            const container = document.getElementById("cart");
 
-  async function fetchCart() {
-    const res = await fetch('/cart');
-    return res.json();
-  }
+            if (!cart.length) {
+                container.innerHTML = "<em>Your cart is empty.</em>";
+                return;
+            }
 
-  async function addToCart(productId, quantity) {
-    await fetch('/cart', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: productId, quantity: quantity })
-    });
-    await renderCart();
-  }
+            container.innerHTML = "";
+            cart.forEach(item => {
+                const div = document.createElement("div");
+                div.className = "cart-item";
+                div.innerText = `${item.name} x${item.quantity} = $${item.quantity * item.price}`;
+                container.appendChild(div);
+            });
+        }
 
-  async function removeFromCart(productId) {
-    await fetch(`/cart/${productId}`, { method: 'DELETE' });
-    await renderCart();
-  }
+        async function clearCart() {
+            await fetch("/cart/clear", { method: "POST" });
+            loadCart();
+        }
 
-  async function clearCart() {
-    await fetch('/cart', { method: 'DELETE' });
-    await renderCart();
-  }
-
-  async function renderProducts() {
-    const products = await fetchProducts();
-    const container = document.getElementById('products');
-    container.innerHTML = '';
-    products.forEach(product => {
-      const div = document.createElement('div');
-      div.className = 'product';
-
-      div.innerHTML = `
-        <span class="product-name">${product.name} - $${product.price.toFixed(2)}</span>
-        <div>
-          <input type="number" min="1" value="1" id="qty-${product.id}" />
-          <button onclick="handleAdd(${product.id})">Add to Cart</button>
-        </div>
-      `;
-      container.appendChild(div);
-    });
-  }
-
-  async function renderCart() {
-    const cartData = await fetchCart();
-    const container = document.getElementById('cart');
-    container.innerHTML = '';
-
-    if (!cartData.items || cartData.items.length === 0) {
-      container.innerHTML = '<p>Your cart is empty.</p>';
-      return;
-    }
-
-    let total = 0;
-
-    cartData.items.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'cart-item';
-
-      const itemTotal = item.price * item.quantity;
-      total += itemTotal;
-
-      div.innerHTML = `
-        <span>${item.name} x ${item.quantity} = $${itemTotal.toFixed(2)}</span>
-        <button onclick="removeFromCart(${item.id})">Remove</button>
-      `;
-
-      container.appendChild(div);
-    });
-
-    const totalDiv = document.createElement('div');
-    totalDiv.className = 'total';
-    totalDiv.textContent = `Total: $${total.toFixed(2)}`;
-    container.appendChild(totalDiv);
-  }
-
-  async function handleAdd(productId) {
-    const qtyInput = document.getElementById(`qty-${productId}`);
-    const quantity = parseInt(qtyInput.value);
-    if (quantity > 0) {
-      await addToCart(productId, quantity);
-    } else {
-      alert('Quantity must be at least 1');
-    }
-  }
-
-  // Initial rendering
-  renderProducts();
-  renderCart();
-</script>
-
+        fetchProducts();
+        loadCart();
+    </script>
 </body>
 </html>
