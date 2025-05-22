@@ -4,9 +4,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 @SpringBootApplication
@@ -27,14 +24,8 @@ public class MainApplication {
         SpringApplication.run(MainApplication.class, args);
     }
 
-    @GetMapping("/")
-    public String index() {
-        try {
-            return Files.readString(Paths.get("src/main/resources/static/index.html"));
-        } catch (IOException e) {
-            return "<h1>Error loading index.html</h1><p>" + e.getMessage() + "</p>";
-        }
-    }
+    // ⚠️ REMOVED the manual index.html loader
+    // Spring Boot will automatically serve index.html from static/
 
     @GetMapping("/products")
     public List<Map<String, Object>> getProducts() {
