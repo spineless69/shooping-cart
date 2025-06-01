@@ -16,7 +16,7 @@ FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
 # Copy the built JAR from the first stage
-COPY --from=build /app/target/shopping-cart-1.0.jar app.jar
+COPY --from=build /app/target/shopping-cart-1.0.0.jar app.jar
 
 # Expose the application port
 EXPOSE 8070
