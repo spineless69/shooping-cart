@@ -5,6 +5,13 @@
 
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version> <!-- Or any compatible version -->
+        <relativePath/> <!-- Lookup from central repo -->
+    </parent>
+
     <groupId>com.shopping</groupId>
     <artifactId>shopping-cart</artifactId>
     <version>1.0.0</version>
@@ -15,16 +22,13 @@
 
     <properties>
         <java.version>21</java.version>
-        <spring.boot.version>3.2.5</spring.boot.version> <!-- Adjust as needed -->
     </properties>
 
     <dependencies>
-        <!-- Add your dependencies here -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!-- Add others as needed -->
     </dependencies>
 
     <build>
@@ -34,21 +38,13 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring.boot.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal> <!-- creates executable JAR -->
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <!-- Java Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version> <!-- Latest stable version -->
+                <version>3.11.0</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
