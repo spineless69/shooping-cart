@@ -15,11 +15,11 @@ FROM eclipse-temurin:17-jdk
 
 WORKDIR /app
 
-# Copy the built JAR from the first stage
+# Copy the built JAR from the build stage
 COPY --from=build /app/target/shopping-cart-1.0.0.jar app.jar
 
-# Expose the application port
-EXPOSE 8070
+# Set environment variable for dynamic port (Railway sets PORT at runtime)
+ENV PORT=8080
 
-# Run the application
+# Run the app — Spring Boot will pick up the PORT from environment variables
 ENTRYPOINT ["java", "-jar", "app.jar"]
