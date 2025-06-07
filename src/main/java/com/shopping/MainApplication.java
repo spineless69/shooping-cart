@@ -13,13 +13,10 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "*")
 public class MainApplication {
 
-    // Data stores (in production, use database)
     private static final List<Map<String, Object>> products = new ArrayList<>();
     private static final Map<String, Map<Integer, Integer>> userCarts = new HashMap<>();
     private static final List<Map<String, Object>> orders = new ArrayList<>();
     private static final Set<String> categories = new HashSet<>();
-    
-    // Simple user session store
     private static final Map<String, String> userSessions = new HashMap<>();
     private static int orderIdCounter = 1;
 
@@ -38,24 +35,27 @@ public class MainApplication {
             Map.of("id", 7, "name", "Tablet", "price", 399.99, "category", "Electronics", "description", "10-inch tablet with stylus support"),
             Map.of("id", 8, "name", "Phone Case", "price", 19.99, "category", "Accessories", "description", "Protective phone case with card holder")
         ));
-        
-        // Extract categories
+
         products.forEach(p -> categories.add((String) p.get("category")));
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(MainApplication.class, args);
+        SpringApplication app = new SpringApplication(MainApplication.class);
+        String port = System.getenv("PORT");
+        if (port != null) {
+            app.setDefaultProperties(Collections.singletonMap("server.port", port));
+        }
+        app.run(args);
     }
 
-    // ============= AUTHENTICATION =============
-    
+    // ==== AUTH ====
+
     @PostMapping("/auth/login")
     public Map<String, Object> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
         String password = credentials.get("password");
-        
-        // Simple auth - in production use proper authentication
-        if (username != null && password != null && username.length() > 0) {
+
+        if (username != null && password != null && !username.isEmpty()) {
             String sessionId = UUID.randomUUID().toString();
             userSessions.put(sessionId, username);
             userCarts.putIfAbsent(username, new HashMap<>());
@@ -63,7 +63,7 @@ public class MainApplication {
         }
         return Map.of("success", false, "message", "Invalid credentials");
     }
-    
+
     @PostMapping("/auth/logout")
     public Map<String, Object> logout(@RequestBody Map<String, String> body) {
         String sessionId = body.get("sessionId");
@@ -71,23 +71,23 @@ public class MainApplication {
         return Map.of("success", true);
     }
 
-    // ============= PRODUCTS =============
-    
+    // ==== PRODUCTS ====
+
     @GetMapping("/products")
     public Map<String, Object> getProducts(
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) String search) {
-        
-        List<Map<String, Object>> filteredProducts = products.stream()
+        @RequestParam(required = false) String category,
+        @RequestParam(required = false) String search
+    ) {
+        List<Map<String, Object>> filtered = products.stream()
             .filter(p -> category == null || category.equals(p.get("category")))
-            .filter(p -> search == null || 
+            .filter(p -> search == null ||
                 ((String) p.get("name")).toLowerCase().contains(search.toLowerCase()) ||
                 ((String) p.get("description")).toLowerCase().contains(search.toLowerCase()))
             .collect(Collectors.toList());
-            
-        return Map.of("products", filteredProducts, "categories", categories);
+
+        return Map.of("products", filtered, "categories", categories);
     }
-    
+
     @GetMapping("/products/{id}")
     public Map<String, Object> getProduct(@PathVariable int id) {
         return products.stream()
@@ -97,19 +97,17 @@ public class MainApplication {
             .orElse(Map.of("success", false, "message", "Product not found"));
     }
 
-    // ============= CART =============
-    
+    // ==== CART ====
+
     @GetMapping("/cart")
     public Map<String, Object> getCart(@RequestParam String sessionId) {
         String username = userSessions.get(sessionId);
-        if (username == null) {
-            return Map.of("success", false, "message", "Invalid session");
-        }
-        
+        if (username == null) return Map.of("success", false, "message", "Invalid session");
+
         Map<Integer, Integer> cart = userCarts.getOrDefault(username, new HashMap<>());
         List<Map<String, Object>> items = new ArrayList<>();
         double totalPrice = 0;
-        
+
         for (Map.Entry<Integer, Integer> entry : cart.entrySet()) {
             products.stream()
                 .filter(p -> p.get("id").equals(entry.getKey()))
@@ -122,30 +120,32 @@ public class MainApplication {
                     items.add(item);
                 });
         }
-        
-        totalPrice = items.stream().mapToDouble(item -> (Double) item.get("total")).sum();
-        
-        return Map.of("success", true, "items", items, "totalPrice", totalPrice, "itemCount", cart.values().stream().mapToInt(Integer::intValue).sum());
+
+        totalPrice = items.stream().mapToDouble(i -> (Double) i.get("total")).sum();
+
+        return Map.of(
+            "success", true,
+            "items", items,
+            "totalPrice", totalPrice,
+            "itemCount", cart.values().stream().mapToInt(Integer::intValue).sum()
+        );
     }
 
     @PostMapping("/cart")
     public Map<String, Object> addToCart(@RequestBody Map<String, Object> body) {
         String sessionId = (String) body.get("sessionId");
         String username = userSessions.get(sessionId);
-        if (username == null) {
-            return Map.of("success", false, "message", "Invalid session");
-        }
-        
+        if (username == null) return Map.of("success", false, "message", "Invalid session");
+
         Integer productId = (Integer) body.get("productId");
         Integer quantity = (Integer) body.get("quantity");
-        
-        if (productId == null || quantity == null || quantity <= 0) {
+
+        if (productId == null || quantity == null || quantity <= 0)
             return Map.of("success", false, "message", "Invalid product or quantity");
-        }
-        
+
         Map<Integer, Integer> cart = userCarts.computeIfAbsent(username, k -> new HashMap<>());
         cart.put(productId, cart.getOrDefault(productId, 0) + quantity);
-        
+
         return Map.of("success", true, "message", "Item added to cart");
     }
 
@@ -153,72 +153,53 @@ public class MainApplication {
     public Map<String, Object> updateCartItem(@RequestBody Map<String, Object> body) {
         String sessionId = (String) body.get("sessionId");
         String username = userSessions.get(sessionId);
-        if (username == null) {
-            return Map.of("success", false, "message", "Invalid session");
-        }
-        
+        if (username == null) return Map.of("success", false, "message", "Invalid session");
+
         Integer productId = (Integer) body.get("productId");
         Integer quantity = (Integer) body.get("quantity");
-        
+
         Map<Integer, Integer> cart = userCarts.get(username);
-        if (cart == null) {
-            return Map.of("success", false, "message", "Cart not found");
-        }
-        
-        if (quantity <= 0) {
-            cart.remove(productId);
-        } else {
-            cart.put(productId, quantity);
-        }
-        
+        if (cart == null) return Map.of("success", false, "message", "Cart not found");
+
+        if (quantity <= 0) cart.remove(productId);
+        else cart.put(productId, quantity);
+
         return Map.of("success", true, "message", "Cart updated");
     }
 
     @DeleteMapping("/cart/{productId}")
     public Map<String, Object> removeFromCart(@PathVariable int productId, @RequestParam String sessionId) {
         String username = userSessions.get(sessionId);
-        if (username == null) {
-            return Map.of("success", false, "message", "Invalid session");
-        }
-        
+        if (username == null) return Map.of("success", false, "message", "Invalid session");
+
         Map<Integer, Integer> cart = userCarts.get(username);
-        if (cart != null) {
-            cart.remove(productId);
-        }
-        
+        if (cart != null) cart.remove(productId);
+
         return Map.of("success", true, "message", "Item removed from cart");
     }
 
     @DeleteMapping("/cart")
     public Map<String, Object> clearCart(@RequestParam String sessionId) {
         String username = userSessions.get(sessionId);
-        if (username == null) {
-            return Map.of("success", false, "message", "Invalid session");
-        }
-        
+        if (username == null) return Map.of("success", false, "message", "Invalid session");
+
         userCarts.put(username, new HashMap<>());
         return Map.of("success", true, "message", "Cart cleared");
     }
 
-    // ============= ORDERS =============
-    
+    // ==== ORDERS ====
+
     @PostMapping("/orders")
     public Map<String, Object> createOrder(@RequestBody Map<String, Object> body) {
         String sessionId = (String) body.get("sessionId");
         String username = userSessions.get(sessionId);
-        if (username == null) {
-            return Map.of("success", false, "message", "Invalid session");
-        }
-        
+        if (username == null) return Map.of("success", false, "message", "Invalid session");
+
         Map<Integer, Integer> cart = userCarts.get(username);
-        if (cart == null || cart.isEmpty()) {
+        if (cart == null || cart.isEmpty())
             return Map.of("success", false, "message", "Cart is empty");
-        }
-        
-        // Calculate order details
+
         List<Map<String, Object>> orderItems = new ArrayList<>();
-        double totalPrice = 0;
-        
         for (Map.Entry<Integer, Integer> entry : cart.entrySet()) {
             products.stream()
                 .filter(p -> p.get("id").equals(entry.getKey()))
@@ -233,10 +214,9 @@ public class MainApplication {
                     orderItems.add(item);
                 });
         }
-        
-        totalPrice = orderItems.stream().mapToDouble(item -> (Double) item.get("total")).sum();
-        
-        // Create order
+
+        double totalPrice = orderItems.stream().mapToDouble(i -> (Double) i.get("total")).sum();
+
         Map<String, Object> order = new HashMap<>();
         order.put("id", orderIdCounter++);
         order.put("username", username);
@@ -246,36 +226,30 @@ public class MainApplication {
         order.put("orderDate", LocalDateTime.now().toString());
         order.put("shippingAddress", body.get("shippingAddress"));
         order.put("paymentMethod", body.get("paymentMethod"));
-        
+
         orders.add(order);
-        
-        // Clear cart after order
         userCarts.put(username, new HashMap<>());
-        
+
         return Map.of("success", true, "order", order, "message", "Order placed successfully");
     }
-    
+
     @GetMapping("/orders")
     public Map<String, Object> getUserOrders(@RequestParam String sessionId) {
         String username = userSessions.get(sessionId);
-        if (username == null) {
-            return Map.of("success", false, "message", "Invalid session");
-        }
-        
+        if (username == null) return Map.of("success", false, "message", "Invalid session");
+
         List<Map<String, Object>> userOrders = orders.stream()
             .filter(order -> username.equals(order.get("username")))
             .collect(Collectors.toList());
-        
+
         return Map.of("success", true, "orders", userOrders);
     }
-    
+
     @GetMapping("/orders/{orderId}")
     public Map<String, Object> getOrder(@PathVariable int orderId, @RequestParam String sessionId) {
         String username = userSessions.get(sessionId);
-        if (username == null) {
-            return Map.of("success", false, "message", "Invalid session");
-        }
-        
+        if (username == null) return Map.of("success", false, "message", "Invalid session");
+
         return orders.stream()
             .filter(order -> order.get("id").equals(orderId) && username.equals(order.get("username")))
             .findFirst()
